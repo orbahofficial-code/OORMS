@@ -1,443 +1,573 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<title>ระบบบริหารพัสดุห้องผ่าตัดออร์โธปิดิกส์</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <meta charset="UTF-8" />
+  <title>ระบบจัดทำทะเบียนพัสดุ ORTHO</title>
 
-<style>
-body {
-  font-family: 'Tahoma', sans-serif;
-  background: linear-gradient(135deg, #e8f0ff, #ffffff);
-}
-.header {
-  background: linear-gradient(135deg, #004085, #0056b3);
-  color: white;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-.header img {
-  height: 60px;
-  margin-right: 15px;
-}
-.header h1 {
-  font-size: 1.8rem;
-  margin: 0;
-}
-.sidebar {
-  background-color: #2c3e50;
-  color: white;
-  height: 100vh;
-  padding-top: 20px;
-  box-shadow: 2px 0 10px rgba(0,0,0,0.3);
-}
-.sidebar a {
-  color: white;
-  text-decoration: none;
-  display: block;
-  padding: 10px 20px;
-  transition: background 0.3s;
-}
-.sidebar a:hover, .sidebar a.active {
-  background-color: #1abc9c;
-}
-.main-content {
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  margin-top: 20px;
-}
-.footer {
-  margin-top: 20px;
-  background: #343a40;
-  color: white;
-  text-align: center;
-  padding: 15px;
-  font-size: 0.9rem;
-  box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
-}
-.status-label {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 20px;
-  color: white;
-  font-weight: bold;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-  text-align: center;
-  min-width: 70px;
-  font-size: 0.9rem;
-}
-.status-normal {
-  background: linear-gradient(135deg, #28a745, #218838);
-}
-.status-broken {
-  background: linear-gradient(135deg, #dc3545, #c82333);
-}
-.status-repair {
-  background: linear-gradient(135deg, #ffc107, #e0a800);
-  color: black;
-}
-.table thead th {
-  background: linear-gradient(135deg, #004085, #0062cc);
-  color: white;
-  text-align: center;
-}
-.table tbody td {
-  text-align: center;
-}
-.btn-info {
-  background: linear-gradient(135deg, #17a2b8, #138496);
-  color: white;
-  border: none;
-  border-radius: 20px;
-  padding: 6px 15px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  font-size: 0.9rem;
-}
-.btn-info:hover {
-  background: linear-gradient(135deg, #138496, #117a8b);
-  transform: scale(1.05);
-}
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-.equipment-title {
-  font-size: 1.8rem;
-  font-weight: bold;
-  color: #004085;
-  text-align: center;
-  text-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-  background: linear-gradient(135deg, #cce5ff, #e6f0ff);
-  padding: 10px 15px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  margin-bottom: 20px;
-}
-</style>
+  <style>
+    body {
+      font-family: "Tahoma", sans-serif;
+      background: linear-gradient(135deg, #e8f0ff, #ffffff);
+      min-height: 100vh;
+    }
+    .app-header {
+      background: linear-gradient(135deg, #004085, #0056b3);
+      color: white;
+      padding: 15px 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      margin-bottom: 20px;
+    }
+    .app-header h1 {
+      font-size: 1.6rem;
+      margin: 0;
+    }
+    .card {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border: none;
+    }
+    .required::after {
+      content: " *";
+      color: red;
+    }
+    #imagePreview img {
+      max-width: 120px;
+      max-height: 120px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+    .table-responsive {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    @media (max-width: 576px) {
+      .app-header h1 {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
 </head>
 <body>
 
-<div class="header">
-  <img src="https://img5.pic.in.th/file/secure-sv1/-52b56ad2d51896660.png">
-  <h1>ระบบบริหารพัสดุห้องผ่าตัดออร์โธปิดิกส์ โรงพยาบาลภูมิพลอดุลยเดช กรมแพทย์ทหารอากาศ</h1>
-</div>
+  <!-- Header -->
+  <header class="app-header d-flex align-items-center justify-content-between">
+    <h1>ระบบจัดทำทะเบียนพัสดุ ห้องผ่าตัดออร์โธปิดิกส์</h1>
+    <span class="badge bg-light text-dark d-none d-sm-inline">Web App Demo</span>
+  </header>
 
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-md-2 sidebar">
-      <h4 class="text-center">เมนู</h4>
-      <a href="index.html" class="active">แดชบอร์ดครุภัณฑ์</a>
-      <!-- ไปหน้า form.html ที่อยู่บน GitHub -->
-      <a href="form.html">เพิ่มครุภัณฑ์</a>
-      <a href="#" onclick="showRepairForm(); return false;">บันทึกซ่อม</a>
-      <a href="#">รายงาน</a>
+  <div class="container mb-5">
+
+    <!-- ฟอร์มลงทะเบียนพัสดุ -->
+    <div class="card mb-4">
+      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <span>ฟอร์มลงทะเบียนพัสดุใหม่</span>
+        <button class="btn btn-sm btn-light" id="btnNewRecord">
+          เพิ่มข้อมูลใหม่
+        </button>
+      </div>
+      <div class="card-body">
+        <form id="assetForm">
+          <div class="row g-3">
+
+            <div class="col-md-3">
+              <label class="form-label">รหัสพัสดุ (ID)</label>
+              <input type="text" class="form-control" id="assetId" readonly>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label required">ชื่อไทย</label>
+              <input type="text" class="form-control" id="nameTh" required>
+            </div>
+
+            <div class="col-md-5">
+              <label class="form-label">ชื่ออังกฤษ</label>
+              <input type="text" class="form-control" id="nameEn">
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">ยี่ห้อ</label>
+              <input type="text" class="form-control" id="brand">
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">รุ่น</label>
+              <input type="text" class="form-control" id="model">
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">S/N</label>
+              <input type="text" class="form-control" id="sn">
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">หมายเลขพัสดุ</label>
+              <input type="text" class="form-control" id="assetNo">
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">จำนวน</label>
+              <input type="number" class="form-control" id="quantity" min="1">
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">บริษัทที่จำหน่าย</label>
+              <input type="text" class="form-control" id="supplier">
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">ปีงบประมาณ</label>
+              <input type="text" class="form-control" id="budgetYear" placeholder="เช่น 2568">
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label required">หน่วยจัดซื้อ</label>
+              <select class="form-select" id="purchaseUnit" required>
+                <option value="">-- เลือกหน่วยจัดซื้อ --</option>
+                <option value="กองออร์โธ">กองออร์โธ</option>
+                <option value="ห้องผ่าตัด">ห้องผ่าตัด</option>
+              </select>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">ราคา (บาท)</label>
+              <input type="number" class="form-control" id="price" min="0" step="0.01">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">อุปกรณ์ประกอบอื่น ๆ</label>
+              <textarea class="form-control" id="otherParts" rows="2"></textarea>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">วันที่รับของ</label>
+              <input type="date" class="form-control" id="receiveDate">
+            </div>
+
+            <div class="col-md-8">
+              <label class="form-label">รูปภาพ (ใส่ได้หลายภาพ)</label>
+              <input type="file" class="form-control" id="imageUpload" accept="image/*" multiple>
+              <div class="mt-2 d-flex flex-wrap gap-2" id="imagePreview"></div>
+            </div>
+
+            <div class="col-md-12">
+              <label class="form-label">ไฟล์เอกสารประกอบ (PDF)</label>
+              <input type="file" class="form-control" id="pdfUpload" accept="application/pdf">
+              <div class="mt-1 small text-muted" id="pdfFileName"></div>
+            </div>
+
+          </div>
+
+          <hr class="mt-4">
+
+          <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end">
+            <button type="button" class="btn btn-outline-secondary" id="btnClear">
+              ล้างข้อมูล
+            </button>
+            <button type="submit" class="btn btn-success" id="btnSave">
+              บันทึกข้อมูล
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
-    <div class="col-md-10">
-      <div class="main-content">
-        <h3 class="equipment-title">ครุภัณฑ์ทางการแพทย์</h3>
-        <div class="row mb-3">
-          <div class="col-md-4">
-            <input type="text" class="form-control" placeholder="ค้นหาครุภัณฑ์..." id="searchInput">
-          </div>
-          <div class="col-md-2">
-            <button class="btn btn-success" onclick="loadEquipment()">ค้นหา</button>
-          </div>
+
+    <!-- ตารางแสดงข้อมูล -->
+    <div class="card">
+      <div class="card-header bg-secondary text-white d-flex flex-column flex-md-row align-items-md-center justify-content-between">
+        <span>ตารางทะเบียนพัสดุ</span>
+        <div class="mt-2 mt-md-0 d-flex gap-2">
+          <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="ค้นหาโดยชื่อ / รุ่น / ID">
         </div>
+      </div>
+      <div class="card-body">
         <div class="table-responsive">
-          <table class="table table-bordered table-striped">
-            <thead>
+          <table class="table table-sm table-striped align-middle">
+            <thead class="table-dark">
               <tr>
                 <th>ลำดับ</th>
-                <th>Ref</th>
-                <th>ชื่อทั่วไป</th>
-                <th>ชื่อ</th>
+                <th>ID</th>
+                <th>ชื่อไทย</th>
+                <th>ยี่ห้อ</th>
                 <th>รุ่น</th>
-                <th>S/N</th>
-                <th>สถานะ</th>
-                <th>สถานที่จัดเก็บ</th>
-                <th>จัดการ</th>
+                <th>จำนวน</th>
+                <th>ราคา</th>
+                <th class="text-center">จัดการ</th>
               </tr>
             </thead>
-            <tbody id="equipmentTable">
-              <tr><td colspan="9" class="text-center">กำลังโหลดข้อมูล...</td></tr>
+            <tbody id="assetTableBody">
+              <tr><td colspan="8" class="text-center text-muted">ยังไม่มีข้อมูล</td></tr>
             </tbody>
           </table>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- Modal ซ่อม -->
-<div class="modal fade" id="repairModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">บันทึกการซ่อมอุปกรณ์</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <label>เลือกชื่ออุปกรณ์:</label>
-        <select id="repairNameSelect" class="form-select" onchange="loadRepairEquipment()">
-          <option value="">-- เลือกชื่ออุปกรณ์ --</option>
-        </select>
-        <div id="repairPreview" style="display:none; margin-top:10px;">
-          <p><strong>Ref:</strong> <span id="repairRef"></span></p>
-          <p><strong>ประเภท:</strong> <span id="repairType"></span></p>
-          <p><strong>ยี่ห้อ:</strong> <span id="repairBrand"></span></p>
-          <div id="repairImageContainer"></div>
+  </div>
+
+  <!-- Modal แสดงรายละเอียด -->
+  <div class="modal fade" id="viewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">รายละเอียดพัสดุ</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <label class="mt-2">วันที่ซ่อม (เช่น 01/07/2568):</label>
-        <input type="text" id="repairDate" class="form-control">
-        <label class="mt-2">รายละเอียดการซ่อม:</label>
-        <textarea id="repairDetail" class="form-control"></textarea>
-        <label class="mt-2">ค่าใช้จ่าย (บาท):</label>
-        <input type="number" id="repairCost" class="form-control">
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-success" onclick="saveRepair()">บันทึก</button>
+        <div class="modal-body">
+          <div id="viewDetailContent"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<div class="footer">
-พัฒนาโดย พ.อ.อ.ธนกฤต วงศ์ศิลา ทำหน้าที่นายทหารสันทัดงาน กวห.รพ.ภูมิพลอดุลยเดช พอ.
-</div>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // ====== ตัวแปรเก็บข้อมูลในหน้านี้ (จำลอง) ======
+    let assets = [];           // เก็บรายการพัสดุทั้งหมด
+    let editIndex = null;      // index ที่กำลังแก้ไขใน assets (null = เพิ่มใหม่)
+    let currentImages = [];    // base64 รูปภาพของ record ปัจจุบัน
+    let currentPdfBase64 = ""; // base64 ของ PDF ปัจจุบัน
+    let lastNumber = 0;        // ใช้สร้างรหัส ORTHO001, ORTHO002, ...
 
-<script>
-// TODO: ใส่ URL ของ Web App จริงที่ Deploy จาก Apps Script ตรงนี้
-const API_URL = 'https://script.google.com/macros/s/AKfycbzU70jZI0LU_wTmOlAx_0H7o6_SNq122_YXxCe5Mz3YylxlOx07I3BlNYLF78IGEc1m/exec';
-
-/**
- * โหลดรายการครุภัณฑ์ทั้งหมดจาก Apps Script (Google Sheet)
- */
-async function loadEquipment() {
-  const searchText = document.getElementById("searchInput").value.trim().toLowerCase();
-  const table = document.getElementById("equipmentTable");
-  table.innerHTML = `<tr><td colspan="9" class="text-center">กำลังโหลดข้อมูล...</td></tr>`;
-
-  try {
-    const res = await fetch(`${API_URL}?action=getAllEquipment`);
-    if (!res.ok) throw new Error('HTTP error ' + res.status);
-    const parsedData = await res.json(); // เป็น Array ของ Object แล้ว
-
-    table.innerHTML = "";
-    if (!parsedData || parsedData.length === 0) {
-      table.innerHTML = `<tr><td colspan="9" class="text-center">ไม่พบข้อมูล</td></tr>`;
-      return;
+    // ====== ฟังก์ชันช่วย ======
+    function generateAssetId() {
+      lastNumber++;
+      return "ORTHO" + String(lastNumber).padStart(3, "0");
     }
 
-    let count = 1;
-    parsedData.forEach(function (item) {
-      const commonName = (item["ชื่อทั่วไป"] || "").toString();
-      const name = (item["ชื่อ"] || "").toString();
-      const model = (item["รุ่น"] || "").toString();
-      const sn = (item["S/N"] || "").toString();
-      const location = (item["สถานที่จัดเก็บ"] || "").toString();
-
-      if (
-        searchText === "" ||
-        commonName.toLowerCase().includes(searchText) ||
-        name.toLowerCase().includes(searchText) ||
-        model.toLowerCase().includes(searchText) ||
-        sn.toLowerCase().includes(searchText) ||
-        location.toLowerCase().includes(searchText)
-      ) {
-        const row = `
-          <tr>
-            <td>${count++}</td>
-            <td>${item["Ref"] || ""}</td>
-            <td>${commonName}</td>
-            <td>${name}</td>
-            <td>${model}</td>
-            <td>${sn}</td>
-            <td>${getStatusBadge(item["สถานะ"])}</td>
-            <td>${location}</td>
-            <td><button class="btn btn-sm btn-info" onclick="viewDetail('${item["Ref"]}')">ดูรายละเอียด</button></td>
-          </tr>`;
-        table.insertAdjacentHTML("beforeend", row);
+    function resetForm(forNew = false) {
+      if (forNew || editIndex === null) {
+        document.getElementById("assetId").value = generateAssetId();
       }
-    });
+      document.getElementById("nameTh").value = "";
+      document.getElementById("nameEn").value = "";
+      document.getElementById("brand").value = "";
+      document.getElementById("model").value = "";
+      document.getElementById("sn").value = "";
+      document.getElementById("assetNo").value = "";
+      document.getElementById("quantity").value = "";
+      document.getElementById("supplier").value = "";
+      document.getElementById("budgetYear").value = "";
+      document.getElementById("purchaseUnit").value = "";
+      document.getElementById("price").value = "";
+      document.getElementById("otherParts").value = "";
+      document.getElementById("receiveDate").value = "";
+      document.getElementById("imageUpload").value = "";
+      document.getElementById("pdfUpload").value = "";
+      document.getElementById("imagePreview").innerHTML = "";
+      document.getElementById("pdfFileName").textContent = "";
 
-    if (count === 1) {
-      table.innerHTML = `<tr><td colspan="9" class="text-center">ไม่พบข้อมูลที่ตรงกับการค้นหา</td></tr>`;
+      currentImages = [];
+      currentPdfBase64 = "";
+
+      if (forNew) {
+        editIndex = null;
+        document.getElementById("btnSave").textContent = "บันทึกข้อมูล";
+      }
     }
 
-  } catch (err) {
-    console.error(err);
-    table.innerHTML = `<tr><td colspan="9" class="text-center text-danger">ไม่สามารถโหลดข้อมูลได้</td></tr>`;
-    Swal.fire({
-      icon: 'error',
-      title: 'โหลดข้อมูลไม่สำเร็จ',
-      text: err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์'
-    });
-  }
-}
+    function showTable(filteredList = null) {
+      const tbody = document.getElementById("assetTableBody");
+      const data = filteredList || assets;
 
-/**
- * เปิดหน้า viewDetail.html บน GitHub พร้อมส่ง ref ไปเป็น query string
- */
-function viewDetail(ref) {
-  // สร้าง viewDetail.html ไว้ใน repo แล้วใช้ ref นี้ไปเรียก API อีกทีในหน้านั้น
-  window.location.href = `viewDetail.html?ref=${encodeURIComponent(ref)}`;
-}
+      tbody.innerHTML = "";
 
-/**
- * แสดง Modal เลือกอุปกรณ์สำหรับบันทึกซ่อม
- */
-async function showRepairForm() {
-  const select = document.getElementById("repairNameSelect");
-  select.innerHTML = `<option value="">กำลังโหลด...</option>`;
+      if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">ยังไม่มีข้อมูล</td></tr>';
+        return;
+      }
 
-  try {
-    const res = await fetch(`${API_URL}?action=getAllEquipment`);
-    if (!res.ok) throw new Error('HTTP error ' + res.status);
-    const data = await res.json();
-
-    select.innerHTML = `<option value="">-- เลือกชื่ออุปกรณ์ --</option>`;
-    data.forEach(item => {
-      const option = document.createElement("option");
-      option.value = item["Ref"];
-      option.text = item["ชื่อ"] || item["ชื่อทั่วไป"] || item["Ref"];
-      select.appendChild(option);
-    });
-
-    new bootstrap.Modal(document.getElementById("repairModal")).show();
-  } catch (err) {
-    console.error(err);
-    Swal.fire({
-      icon: 'error',
-      title: 'ไม่สามารถโหลดรายการอุปกรณ์',
-      text: err.message || 'กรุณาลองใหม่อีกครั้ง'
-    });
-  }
-}
-
-/**
- * โหลดข้อมูลอุปกรณ์ตาม Ref มาแสดงใน preview ของ modal ซ่อม
- */
-async function loadRepairEquipment() {
-  const ref = document.getElementById("repairNameSelect").value;
-  const preview = document.getElementById("repairPreview");
-
-  if (!ref) {
-    preview.style.display = "none";
-    return;
-  }
-
-  try {
-    const res = await fetch(`${API_URL}?action=getEquipmentByRef&ref=${encodeURIComponent(ref)}`);
-    if (!res.ok) throw new Error('HTTP error ' + res.status);
-    const item = await res.json();
-    if (!item) {
-      preview.style.display = "none";
-      return;
+      data.forEach((item, idx) => {
+        const rowIndex = filteredList ? assets.indexOf(item) : idx; // index จริงใน assets
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td>${item.id}</td>
+          <td>${item.nameTh || ""}</td>
+          <td>${item.brand || ""}</td>
+          <td>${item.model || ""}</td>
+          <td>${item.quantity || ""}</td>
+          <td>${item.price ? Number(item.price).toLocaleString('th-TH') : ""}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-info me-1" onclick="viewAsset(${rowIndex})">ดู</button>
+            <button class="btn btn-sm btn-warning me-1" onclick="editAsset(${rowIndex})">แก้ไข</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteAsset(${rowIndex})">ลบ</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
 
-    document.getElementById("repairRef").innerText = item["Ref"] || "";
-    document.getElementById("repairType").innerText = item["ประเภท"] || "";
-    document.getElementById("repairBrand").innerText = item["ยี่ห้อ"] || "";
+    function renderViewModal(item) {
+      const container = document.getElementById("viewDetailContent");
+      const receiveDateText = item.receiveDate
+        ? new Date(item.receiveDate).toLocaleDateString('th-TH')
+        : "";
 
-    const imgContainer = document.getElementById("repairImageContainer");
-    if (item["รูปภาพ"]) {
-      imgContainer.innerHTML = `<img src="${item["รูปภาพ"]}" style="max-width:100%; max-height:200px;">`;
-    } else {
-      imgContainer.innerHTML = "<p>ไม่มีรูปภาพ</p>";
+      let imgHtml = "";
+      if (item.images && item.images.length > 0) {
+        imgHtml = item.images
+          .map(src => `<img src="${src}" style="max-width:120px;max-height:120px;object-fit:cover;border-radius:6px;margin:4px;">`)
+          .join("");
+      } else {
+        imgHtml = "<p class='text-muted'>ไม่มีรูปภาพ</p>";
+      }
+
+      let pdfHtml = "";
+      if (item.pdfName) {
+        pdfHtml = `<p>มีไฟล์ PDF: <span class="badge bg-secondary">${item.pdfName}</span></p>`;
+      } else {
+        pdfHtml = "<p class='text-muted'>ไม่มีไฟล์เอกสารแนบ</p>";
+      }
+
+      container.innerHTML = `
+        <div class="row">
+          <div class="col-md-6">
+            <table class="table table-sm">
+              <tr><th>ID</th><td>${item.id}</td></tr>
+              <tr><th>ชื่อไทย</th><td>${item.nameTh || ""}</td></tr>
+              <tr><th>ชื่ออังกฤษ</th><td>${item.nameEn || ""}</td></tr>
+              <tr><th>ยี่ห้อ</th><td>${item.brand || ""}</td></tr>
+              <tr><th>รุ่น</th><td>${item.model || ""}</td></tr>
+              <tr><th>S/N</th><td>${item.sn || ""}</td></tr>
+              <tr><th>หมายเลขพัสดุ</th><td>${item.assetNo || ""}</td></tr>
+              <tr><th>จำนวน</th><td>${item.quantity || ""}</td></tr>
+              <tr><th>ราคา (บาท)</th><td>${item.price || ""}</td></tr>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <table class="table table-sm">
+              <tr><th>บริษัทที่จำหน่าย</th><td>${item.supplier || ""}</td></tr>
+              <tr><th>ปีงบประมาณ</th><td>${item.budgetYear || ""}</td></tr>
+              <tr><th>หน่วยจัดซื้อ</th><td>${item.purchaseUnit || ""}</td></tr>
+              <tr><th>วันที่รับของ</th><td>${receiveDateText}</td></tr>
+              <tr><th>อุปกรณ์ประกอบอื่น ๆ</th><td>${(item.otherParts || "").replace(/\n/g, "<br>")}</td></tr>
+            </table>
+          </div>
+        </div>
+        <hr>
+        <h6>รูปภาพ</h6>
+        <div class="mb-3">${imgHtml}</div>
+        <h6>เอกสารแนบ</h6>
+        ${pdfHtml}
+      `;
     }
 
-    preview.style.display = "block";
+    // ====== Event: เลือกรูปภาพ ======
+    document.getElementById("imageUpload").addEventListener("change", function (e) {
+      const files = e.target.files;
+      const preview = document.getElementById("imagePreview");
+      currentImages = [];
+      preview.innerHTML = "";
 
-  } catch (err) {
-    console.error(err);
-    Swal.fire({
-      icon: 'error',
-      title: 'โหลดข้อมูลอุปกรณ์ไม่สำเร็จ',
-      text: err.message || 'กรุณาลองใหม่อีกครั้ง'
-    });
-  }
-}
+      if (!files || files.length === 0) return;
 
-/**
- * บันทึกข้อมูลการซ่อม ผ่าน API (POST → saveRepairData)
- */
-async function saveRepair() {
-  const ref = document.getElementById("repairRef").innerText;
-  const repairDate = document.getElementById("repairDate").value;
-  const repairDetail = document.getElementById("repairDetail").value;
-  const repairCost = document.getElementById("repairCost").value;
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function (ev) {
+          const base64 = ev.target.result;
+          currentImages.push(base64);
 
-  if (!ref || !repairDate || !repairDetail) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'กรุณากรอกข้อมูลให้ครบถ้วน',
-      confirmButtonText: 'ตกลง'
-    });
-    return;
-  }
-
-  const repairData = { ref, repairDate, repairDetail, repairCost };
-
-  Swal.fire({
-    title: 'กำลังบันทึก...',
-    allowOutsideClick: false,
-    didOpen: () => Swal.showLoading()
-  });
-
-  try {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'saveRepairData',
-        data: repairData
-      })
+          const img = document.createElement("img");
+          img.src = base64;
+          img.classList.add("border");
+          preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
     });
 
-    const result = await res.json();
-    Swal.close();
+    // ====== Event: เลือก PDF ======
+    document.getElementById("pdfUpload").addEventListener("change", function (e) {
+      const file = e.target.files[0];
+      const label = document.getElementById("pdfFileName");
+      currentPdfBase64 = "";
+      label.textContent = "";
 
-    if (!res.ok || result.success === false) {
-      throw new Error(result.error || 'บันทึกข้อมูลไม่สำเร็จ');
+      if (!file) return;
+      if (file.type !== "application/pdf") {
+        Swal.fire("กรุณาเลือกไฟล์ PDF เท่านั้น", "", "warning");
+        e.target.value = "";
+        return;
+      }
+
+      label.textContent = `ไฟล์: ${file.name}`;
+      const reader = new FileReader();
+      reader.onload = function (ev) {
+        currentPdfBase64 = ev.target.result; // data:application/pdf;base64,...
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // ====== Event: ปุ่มเพิ่มข้อมูลใหม่ ======
+    document.getElementById("btnNewRecord").addEventListener("click", function () {
+      resetForm(true);
+    });
+
+    // ====== Event: ปุ่มล้างข้อมูล ======
+    document.getElementById("btnClear").addEventListener("click", function () {
+      resetForm(false);
+    });
+
+    // ====== Event: Submit ฟอร์ม (บันทึกข้อมูล) ======
+    document.getElementById("assetForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const id = document.getElementById("assetId").value || generateAssetId();
+      const nameTh = document.getElementById("nameTh").value.trim();
+      const nameEn = document.getElementById("nameEn").value.trim();
+      const brand = document.getElementById("brand").value.trim();
+      const model = document.getElementById("model").value.trim();
+      const sn = document.getElementById("sn").value.trim();
+      const assetNo = document.getElementById("assetNo").value.trim();
+      const quantity = document.getElementById("quantity").value.trim();
+      const supplier = document.getElementById("supplier").value.trim();
+      const budgetYear = document.getElementById("budgetYear").value.trim();
+      const purchaseUnit = document.getElementById("purchaseUnit").value;
+      const price = document.getElementById("price").value.trim();
+      const otherParts = document.getElementById("otherParts").value.trim();
+      const receiveDate = document.getElementById("receiveDate").value;
+
+      if (!nameTh || !purchaseUnit) {
+        Swal.fire("กรุณากรอกข้อมูลที่มี * ให้ครบ", "", "warning");
+        return;
+      }
+
+      const assetObj = {
+        id,
+        nameTh,
+        nameEn,
+        brand,
+        model,
+        sn,
+        assetNo,
+        quantity,
+        supplier,
+        budgetYear,
+        purchaseUnit,
+        price,
+        otherParts,
+        receiveDate,
+        images: [...currentImages],
+        pdfBase64: currentPdfBase64,
+        pdfName: document.getElementById("pdfUpload").files[0]?.name || ""
+      };
+
+      if (editIndex === null) {
+        // เพิ่มใหม่
+        assets.push(assetObj);
+      } else {
+        // แก้ไข
+        assets[editIndex] = assetObj;
+      }
+
+      showTable();
+      Swal.fire({
+        icon: "success",
+        title: "บันทึกข้อมูลเรียบร้อย",
+        showConfirmButton: false,
+        timer: 1200
+      });
+
+      resetForm(true);
+    });
+
+    // ====== ฟังก์ชัน: ดูรายละเอียด ======
+    function viewAsset(index) {
+      const item = assets[index];
+      if (!item) return;
+      renderViewModal(item);
+      const modal = new bootstrap.Modal(document.getElementById("viewModal"));
+      modal.show();
     }
 
-    Swal.fire({
-      icon: 'success',
-      title: 'สำเร็จ',
-      text: result.message || 'บันทึกข้อมูลการซ่อมเรียบร้อย',
-      confirmButtonText: 'ตกลง'
-    }).then(() => {
-      const repairModal = bootstrap.Modal.getInstance(document.getElementById("repairModal"));
-      if (repairModal) repairModal.hide();
-      loadEquipment(); // refresh ตาราง
+    // ====== ฟังก์ชัน: แก้ไข ======
+    function editAsset(index) {
+      const item = assets[index];
+      if (!item) return;
+
+      editIndex = index;
+      document.getElementById("btnSave").textContent = "อัปเดตข้อมูล";
+
+      document.getElementById("assetId").value = item.id;
+      document.getElementById("nameTh").value = item.nameTh || "";
+      document.getElementById("nameEn").value = item.nameEn || "";
+      document.getElementById("brand").value = item.brand || "";
+      document.getElementById("model").value = item.model || "";
+      document.getElementById("sn").value = item.sn || "";
+      document.getElementById("assetNo").value = item.assetNo || "";
+      document.getElementById("quantity").value = item.quantity || "";
+      document.getElementById("supplier").value = item.supplier || "";
+      document.getElementById("budgetYear").value = item.budgetYear || "";
+      document.getElementById("purchaseUnit").value = item.purchaseUnit || "";
+      document.getElementById("price").value = item.price || "";
+      document.getElementById("otherParts").value = item.otherParts || "";
+      document.getElementById("receiveDate").value = item.receiveDate || "";
+
+      currentImages = item.images || [];
+      const preview = document.getElementById("imagePreview");
+      preview.innerHTML = "";
+      currentImages.forEach(src => {
+        const img = document.createElement("img");
+        img.src = src;
+        img.classList.add("border");
+        preview.appendChild(img);
+      });
+
+      currentPdfBase64 = item.pdfBase64 || "";
+      document.getElementById("pdfUpload").value = "";
+      document.getElementById("pdfFileName").textContent = item.pdfName ? `ไฟล์: ${item.pdfName}` : "";
+    }
+
+    // ====== ฟังก์ชัน: ลบ ======
+    function deleteAsset(index) {
+      Swal.fire({
+        title: "ยืนยันการลบ",
+        text: "ต้องการลบข้อมูลรายการนี้หรือไม่?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "ลบ",
+        cancelButtonText: "ยกเลิก"
+      }).then(result => {
+        if (!result.isConfirmed) return;
+        assets.splice(index, 1);
+        showTable();
+      });
+    }
+
+    // ทำให้เรียกจาก HTML ได้
+    window.viewAsset = viewAsset;
+    window.editAsset = editAsset;
+    window.deleteAsset = deleteAsset;
+
+    // ====== ค้นหา ======
+    document.getElementById("searchInput").addEventListener("input", function () {
+      const text = this.value.toLowerCase();
+      if (!text) {
+        showTable();
+        return;
+      }
+      const filtered = assets.filter(a =>
+        (a.id || "").toLowerCase().includes(text) ||
+        (a.nameTh || "").toLowerCase().includes(text) ||
+        (a.model || "").toLowerCase().includes(text)
+      );
+      showTable(filtered);
     });
 
-  } catch (err) {
-    console.error(err);
-    Swal.close();
-    Swal.fire({
-      icon: 'error',
-      title: 'เกิดข้อผิดพลาด',
-      text: err.message || 'ไม่สามารถบันทึกข้อมูลได้'
+    // ====== เริ่มต้น ======
+    window.addEventListener("DOMContentLoaded", () => {
+      // สร้าง ID แรก
+      resetForm(true);
+      showTable();
     });
-  }
-}
-
-/**
- * แสดง Badge สถานะ
- */
-function getStatusBadge(statusText) {
-  if (statusText === "ปกติ") return `<span class="status-label status-normal">ปกติ</span>`;
-  if (statusText === "ชำรุด") return `<span class="status-label status-broken">ชำรุด</span>`;
-  if (statusText === "ส่งซ่อม") return `<span class="status-label status-repair">ส่งซ่อม</span>`;
-  return `<span class="status-label">${statusText || "-"}</span>`;
-}
-
-window.onload = loadEquipment;
-</script>
+  </script>
 </body>
 </html>
