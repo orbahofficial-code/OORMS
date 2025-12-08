@@ -364,7 +364,7 @@
               <tr><th>ปีงบประมาณ</th><td>${item.budgetYear || ""}</td></tr>
               <tr><th>หน่วยจัดซื้อ</th><td>${item.purchaseUnit || ""}</td></tr>
               <tr><th>วันที่รับของ</th><td>${receiveDateText}</td></tr>
-              <tr><th>อุปกรณ์ประกอบอื่น ๆ</th><td>${(item.otherParts || "").replace(/\n/g, "<br>")}</td></tr>
+              <tr><th>อุปกรณ์ประกอบอื่น ๆ</th><td>${String(item.otherParts ?? "").replace(/\n/g, "<br>")}</td></tr>
             </table>
           </div>
         </div>
