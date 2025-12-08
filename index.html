@@ -555,7 +555,7 @@
       document.getElementById("purchaseUnit").value = item.purchaseUnit || "";
       document.getElementById("price").value = item.price || "";
       document.getElementById("otherParts").value = item.otherParts || "";
-      document.getElementById("receiveDate").value = item.receiveDate || "";
+      document.getElementById("receiveDate").value = item.receiveDate ? new Date(item.receiveDate).toISOString().slice(0, 10) : "";
 
       // แสดง preview รูปจาก URL เดิม แต่ไม่ส่ง URL เป็น base64 กลับไป (ถ้าไม่อัปโหลดใหม่)
       const preview = document.getElementById("imagePreview");
