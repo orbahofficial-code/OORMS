@@ -230,8 +230,6 @@
 
   <script>
     // ====== ตั้งค่า API URL (Web App URL จาก Apps Script) ======
-    // 🔴 ตรงนี้ให้เปลี่ยนเป็น URL ของคุณเอง เช่น
-    // const API_URL = 'https://script.google.com/macros/s/AKfycbxxxxxxxxxxxxxxxx/exec';
     const API_URL = 'https://script.google.com/macros/s/AKfycbzU70jZI0LU_wTmOlAx_0H7o6_SNq122_YXxCe5Mz3YylxlOx07I3BlNYLF78IGEc1m/exec';
 
     // ====== ตัวแปรหลัก ======
@@ -269,7 +267,7 @@
       currentPdfBase64 = "";
     }
 
-    // ====== โหลดข้อมูลทั้งหมดจาก Google Sheet ผ่าน API ======
+    // ====== โหลดข้อมูลทั้งหมดจาก Google Sheet ผ่าน API (ใช้ GET ธรรมดา) ======
     async function loadAssets() {
       const tbody = document.getElementById("assetTableBody");
       tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>';
@@ -459,7 +457,7 @@
       }
 
       const assetData = {
-        id, // ถ้าเป็นการเพิ่มใหม่ code.gs จะสร้าง ID เองหากว่าง
+        id, // ถ้าเป็นการเพิ่มใหม่/backend จะสร้าง ID เองถ้าว่าง
         nameTh,
         nameEn,
         brand,
@@ -488,18 +486,21 @@
       });
 
       try {
-        const payload = {
+        const payloadObj = {
           action,
           data: assetData,
-          images: currentImages,           // ถ้ามีรูปใหม่ → ส่ง base64, ถ้า [] → ใช้รูปเดิม
-          pdfBase64: currentPdfBase64,     // ถ้ามี PDF ใหม่ → ส่ง, ถ้า "" → ใช้เดิม
+          images: currentImages,       // ถ้ามีรูปใหม่ → ส่ง base64, ถ้า [] → ให้ backend ใช้รูปเดิม
+          pdfBase64: currentPdfBase64, // ถ้ามี PDF ใหม่ → ส่ง, ถ้า "" → ให้ backend ใช้เดิม
           pdfName: pdfName
         };
 
+        // ใช้ URLSearchParams + payload แบบเดียวกับโปรเจกต์เช็คอิน
+        const form = new URLSearchParams();
+        form.append('payload', JSON.stringify(payloadObj));
+
         const res = await fetch(API_URL, {
           method: 'POST',
-          // ไม่ใส่ Content-Type เพื่อลดปัญหา CORS preflight (จะเป็น text/plain)
-          body: JSON.stringify(payload)
+          body: form       // ไม่มีการตั้ง Content-Type เอง → เป็น application/x-www-form-urlencoded (simple request)
         });
 
         const result = await res.json();
@@ -569,8 +570,8 @@
       }
 
       // รูป & PDF เดิมให้ backend จัดการ ถ้ายังไม่อัปโหลดใหม่
-      currentImages = [];           // ถ้า user ไม่อัปโหลดใหม่ → ส่ง [] ไป → code.gs ใช้ของเดิม
-      currentPdfBase64 = "";        // เช่นกัน
+      currentImages = [];           // ถ้า user ไม่อัปโหลดใหม่ → ส่ง [] ไปใน payload
+      currentPdfBase64 = "";
       document.getElementById("pdfUpload").value = "";
       document.getElementById("pdfFileName").textContent = item.pdfName ? `ไฟล์: ${item.pdfName}` : "";
     }
@@ -598,14 +599,17 @@
       });
 
       try {
-        const payload = {
+        const payloadObj = {
           action: 'deleteAsset',
           id: item.id
         };
 
+        const form = new URLSearchParams();
+        form.append('payload', JSON.stringify(payloadObj));
+
         const res = await fetch(API_URL, {
           method: 'POST',
-          body: JSON.stringify(payload)
+          body: form
         });
         const json = await res.json();
         if (!json.success) throw new Error(json.error || 'ลบข้อมูลไม่สำเร็จ');
