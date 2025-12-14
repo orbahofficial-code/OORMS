@@ -136,7 +136,16 @@
               <input type="number" class="form-control" id="price" min="0" step="0.01">
             </div>
 
-            <!-- ✅ เพิ่ม: สถานะ -->
+            <!-- ✅ เพิ่ม: ประเภทพัสดุ -->
+            <div class="col-md-4">
+              <label class="form-label required">ประเภทพัสดุ</label>
+              <select class="form-select" id="assetType" required>
+                <option value="คงรูป">คงรูป</option>
+                <option value="คงทน">คงทน</option>
+              </select>
+            </div>
+
+            <!-- ✅ สถานะ -->
             <div class="col-md-4">
               <label class="form-label required">สถานะ</label>
               <select class="form-select" id="status" required>
@@ -151,7 +160,7 @@
               <textarea class="form-control" id="otherParts" rows="2"></textarea>
             </div>
 
-            <!-- ✅ เพิ่ม: หมายเหตุ -->
+            <!-- ✅ หมายเหตุ -->
             <div class="col-12">
               <label class="form-label">หมายเหตุ</label>
               <textarea class="form-control" id="note" rows="2" placeholder="รายละเอียดเพิ่มเติม / ประวัติชำรุด / หมายเหตุอื่น ๆ"></textarea>
@@ -170,11 +179,9 @@
 
             <div class="col-md-12">
               <label class="form-label">ไฟล์เอกสารประกอบ (PDF)</label>
-              <!-- ✅ เปลี่ยนเป็น multiple เพื่อเลือกได้หลายไฟล์ -->
               <input type="file" class="form-control" id="pdfUpload" accept="application/pdf" multiple>
               <div class="mt-1 small text-muted" id="pdfFileName"></div>
 
-              <!-- ✅ เลือกโหมด PDF: เพิ่มเติม / อัปโหลดใหม่ทั้งหมด -->
               <div class="mt-2">
                 <div class="form-check">
                   <input class="form-check-input" type="radio" name="pdfMode" id="pdfReplace" value="replace" checked>
@@ -208,7 +215,7 @@
       <div class="card-header bg-secondary text-white d-flex flex-column flex-md-row align-items-md-center justify-content-between">
         <span>ตารางทะเบียนพัสดุ</span>
         <div class="mt-2 mt-md-0 d-flex gap-2">
-          <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="ค้นหาโดยชื่อ / รุ่น / ID / สถานะ">
+          <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="ค้นหาโดยชื่อ / รุ่น / ID / สถานะ / ประเภท">
         </div>
       </div>
       <div class="card-body">
@@ -220,6 +227,7 @@
                 <th>ID</th>
                 <th>ชื่อไทย</th>
                 <th>ชื่ออังกฤษ</th>
+                <th>ประเภทพัสดุ</th>
                 <th>สถานะ</th>
                 <th>ยี่ห้อ</th>
                 <th>รุ่น</th>
@@ -229,7 +237,7 @@
               </tr>
             </thead>
             <tbody id="assetTableBody">
-              <tr><td colspan="10" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>
+              <tr><td colspan="11" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>
             </tbody>
           </table>
         </div>
@@ -264,18 +272,16 @@
     const API_URL = 'https://script.google.com/macros/s/AKfycbzU70jZI0LU_wTmOlAx_0H7o6_SNq122_YXxCe5Mz3YylxlOx07I3BlNYLF78IGEc1m/exec';
 
     // ====== ตัวแปรหลัก ======
-    let assets = [];               // รายการพัสดุทั้งหมดจาก backend
-    let editIndex = null;          // index ใน assets ที่กำลังแก้ไข (null = เพิ่มใหม่)
-    let currentImages = [];        // base64 รูปภาพที่จะส่งให้ backend
-
-    // ✅ PDF แบบหลายไฟล์
-    let currentPdfBase64s = [];    // base64 PDF หลายไฟล์
-    let currentPdfNames = [];      // ชื่อไฟล์ PDF หลายไฟล์
+    let assets = [];
+    let editIndex = null;
+    let currentImages = [];
+    let currentPdfBase64s = [];
+    let currentPdfNames = [];
 
     // ====== ฟังก์ชันรีเซ็ตฟอร์ม ======
     function resetForm(forNew = false) {
       if (forNew) {
-        document.getElementById("assetId").value = ""; // ให้ backend เป็นคนออก ID
+        document.getElementById("assetId").value = "";
         editIndex = null;
         document.getElementById("btnSave").textContent = "บันทึกข้อมูล";
       }
@@ -290,6 +296,10 @@
       document.getElementById("budgetYear").value = "";
       document.getElementById("purchaseUnit").value = "";
       document.getElementById("price").value = "";
+
+      // ✅ ใหม่: ประเภทพัสดุ
+      document.getElementById("assetType").value = "คงรูป";
+
       document.getElementById("status").value = "ปกติ";
       document.getElementById("otherParts").value = "";
       document.getElementById("note").value = "";
@@ -299,7 +309,6 @@
       document.getElementById("imagePreview").innerHTML = "";
       document.getElementById("pdfFileName").textContent = "";
 
-      // ค่าเริ่มต้นโหมด PDF
       document.getElementById("pdfReplace").checked = true;
 
       currentImages = [];
@@ -307,10 +316,10 @@
       currentPdfNames = [];
     }
 
-    // ====== โหลดข้อมูลทั้งหมดจาก Google Sheet ผ่าน API (ใช้ GET ธรรมดา) ======
+    // ====== โหลดข้อมูลทั้งหมด ======
     async function loadAssets() {
       const tbody = document.getElementById("assetTableBody");
-      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>';
 
       try {
         const res = await fetch(`${API_URL}?action=getAllAssets`);
@@ -320,7 +329,7 @@
         showTable();
       } catch (err) {
         console.error(err);
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger">โหลดข้อมูลไม่สำเร็จ</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="text-center text-danger">โหลดข้อมูลไม่สำเร็จ</td></tr>';
         Swal.fire("เกิดข้อผิดพลาด", err.message || "ไม่สามารถโหลดข้อมูลได้", "error");
       }
     }
@@ -333,20 +342,22 @@
       tbody.innerHTML = "";
 
       if (!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">ยังไม่มีข้อมูล</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted">ยังไม่มีข้อมูล</td></tr>';
         return;
       }
 
       data.forEach((item, idx) => {
         const rowIndex = filteredList ? assets.indexOf(item) : idx;
-        const tr = document.createElement("tr");
         const statusText = item.status || "ปกติ";
+        const typeText = item.assetType || "คงรูป";
 
+        const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${idx + 1}</td>
           <td>${item.id}</td>
           <td>${item.nameTh || ""}</td>
           <td>${item.nameEn || ""}</td>
+          <td>${typeText}</td>
           <td>${statusText}</td>
           <td>${item.brand || ""}</td>
           <td>${item.model || ""}</td>
@@ -370,6 +381,7 @@
         : "";
 
       const statusText = item.status || "ปกติ";
+      const typeText = item.assetType || "คงรูป";
       const noteText = item.note ? String(item.note) : "";
 
       let imgHtml = "";
@@ -381,7 +393,6 @@
         imgHtml = "<p class='text-muted'>ไม่มีรูปภาพ</p>";
       }
 
-      // ✅ PDF หลายไฟล์ (backend ส่ง pdfNames[], pdfUrls[])
       let pdfHtml = "";
       if (item.pdfUrls && item.pdfUrls.length > 0) {
         pdfHtml = "<ul class='mb-0'>" + item.pdfUrls.map((u, i) => {
@@ -399,6 +410,7 @@
               <tr><th>ID</th><td>${item.id}</td></tr>
               <tr><th>ชื่อไทย</th><td>${item.nameTh || ""}</td></tr>
               <tr><th>ชื่ออังกฤษ</th><td>${item.nameEn || ""}</td></tr>
+              <tr><th>ประเภทพัสดุ</th><td>${typeText}</td></tr>
               <tr><th>สถานะ</th><td>${statusText}</td></tr>
               <tr><th>ยี่ห้อ</th><td>${item.brand || ""}</td></tr>
               <tr><th>รุ่น</th><td>${item.model || ""}</td></tr>
@@ -474,7 +486,7 @@
       files.forEach(file => {
         const reader = new FileReader();
         reader.onload = (ev) => {
-          currentPdfBase64s.push(ev.target.result); // data:application/pdf;base64,...
+          currentPdfBase64s.push(ev.target.result);
           currentPdfNames.push(file.name);
         };
         reader.readAsDataURL(file);
@@ -507,12 +519,16 @@
       const budgetYear = document.getElementById("budgetYear").value.trim();
       const purchaseUnit = document.getElementById("purchaseUnit").value;
       const price = document.getElementById("price").value.trim();
-      const status = document.getElementById("status").value;   // ✅ เพิ่ม
+
+      // ✅ ใหม่: ประเภทพัสดุ
+      const assetType = document.getElementById("assetType").value;
+
+      const status = document.getElementById("status").value;
       const otherParts = document.getElementById("otherParts").value.trim();
-      const note = document.getElementById("note").value.trim(); // ✅ เพิ่ม
+      const note = document.getElementById("note").value.trim();
       const receiveDate = document.getElementById("receiveDate").value;
 
-      if (!nameTh || !purchaseUnit || !status) {
+      if (!nameTh || !purchaseUnit || !status || !assetType) {
         Swal.fire("กรุณากรอกข้อมูลที่มี * ให้ครบ", "", "warning");
         return;
       }
@@ -530,16 +546,15 @@
         budgetYear,
         purchaseUnit,
         price,
-        status,   // ✅ ส่งไป backend
-        note,     // ✅ ส่งไป backend
+        assetType, // ✅ ส่งไป backend
+        status,
+        note,
         otherParts,
         receiveDate
       };
 
       const isNew = (editIndex === null);
       const action = isNew ? 'saveAsset' : 'updateAsset';
-
-      // ✅ โหมด PDF
       const pdfMode = document.querySelector('input[name="pdfMode"]:checked')?.value || 'replace';
 
       Swal.fire({
@@ -555,7 +570,7 @@
           images: currentImages,
           pdfBase64s: currentPdfBase64s,
           pdfNames: currentPdfNames,
-          pdfMode: pdfMode
+          pdfMode
         };
 
         const form = new URLSearchParams();
@@ -612,16 +627,18 @@
       document.getElementById("budgetYear").value = item.budgetYear || "";
       document.getElementById("purchaseUnit").value = item.purchaseUnit || "";
       document.getElementById("price").value = item.price || "";
-      document.getElementById("status").value = item.status || "ปกติ"; // ✅ เพิ่ม
-      document.getElementById("otherParts").value = item.otherParts || "";
-      document.getElementById("note").value = item.note || "";        // ✅ เพิ่ม
 
-      // วันที่
+      // ✅ ใหม่: ประเภทพัสดุ (default คงรูป)
+      document.getElementById("assetType").value = item.assetType || "คงรูป";
+
+      document.getElementById("status").value = item.status || "ปกติ";
+      document.getElementById("otherParts").value = item.otherParts || "";
+      document.getElementById("note").value = item.note || "";
+
       document.getElementById("receiveDate").value = item.receiveDate
         ? new Date(item.receiveDate).toISOString().slice(0, 10)
         : "";
 
-      // preview รูปเดิม (URL)
       const preview = document.getElementById("imagePreview");
       preview.innerHTML = "";
       if (item.images && item.images.length > 0) {
@@ -633,7 +650,6 @@
         });
       }
 
-      // ✅ PDF เดิมแสดงเป็น list
       document.getElementById("pdfUpload").value = "";
       if (item.pdfNames && item.pdfNames.length > 0) {
         document.getElementById("pdfFileName").textContent = `ไฟล์เดิม: ${item.pdfNames.join(", ")}`;
@@ -641,12 +657,10 @@
         document.getElementById("pdfFileName").textContent = "";
       }
 
-      // reset ไฟล์ที่จะส่ง (ถ้า user ไม่เลือกใหม่ => ส่ง [] ไป backend)
       currentImages = [];
       currentPdfBase64s = [];
       currentPdfNames = [];
 
-      // ค่าเริ่มต้นโหมด PDF ตอนแก้ไข
       document.getElementById("pdfAppend").checked = true;
     }
 
@@ -712,7 +726,8 @@
         (a.id || "").toLowerCase().includes(text) ||
         (a.nameTh || "").toLowerCase().includes(text) ||
         (a.nameEn || "").toLowerCase().includes(text) ||
-        (a.status || "").toLowerCase().includes(text) ||   // ✅ เพิ่มค้นหาสถานะ
+        (a.status || "").toLowerCase().includes(text) ||
+        (a.assetType || "").toLowerCase().includes(text) ||  // ✅ เพิ่มค้นหาประเภทพัสดุ
         (a.model || "").toLowerCase().includes(text)
       );
       showTable(filtered);
