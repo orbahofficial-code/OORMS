@@ -154,8 +154,21 @@
 
             <div class="col-md-12">
               <label class="form-label">ไฟล์เอกสารประกอบ (PDF)</label>
-              <input type="file" class="form-control" id="pdfUpload" accept="application/pdf">
+              <!-- ✅ เปลี่ยนเป็น multiple เพื่อเลือกได้หลายไฟล์ -->
+              <input type="file" class="form-control" id="pdfUpload" accept="application/pdf" multiple>
               <div class="mt-1 small text-muted" id="pdfFileName"></div>
+
+              <!-- ✅ เลือกโหมด PDF: เพิ่มเติม / อัปโหลดใหม่ทั้งหมด -->
+              <div class="mt-2">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="pdfMode" id="pdfReplace" value="replace" checked>
+                  <label class="form-check-label" for="pdfReplace">อัปโหลดใหม่ทั้งหมด (แทนที่ไฟล์เดิม)</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="pdfMode" id="pdfAppend" value="append">
+                  <label class="form-check-label" for="pdfAppend">เพิ่มเติมไฟล์ (เก็บไฟล์เดิมไว้)</label>
+                </div>
+              </div>
             </div>
 
           </div>
@@ -234,10 +247,13 @@
     const API_URL = 'https://script.google.com/macros/s/AKfycbzU70jZI0LU_wTmOlAx_0H7o6_SNq122_YXxCe5Mz3YylxlOx07I3BlNYLF78IGEc1m/exec';
 
     // ====== ตัวแปรหลัก ======
-    let assets = [];           // รายการพัสดุทั้งหมดจาก backend
-    let editIndex = null;      // index ใน assets ที่กำลังแก้ไข (null = เพิ่มใหม่)
-    let currentImages = [];    // base64 รูปภาพที่จะส่งให้ backend
-    let currentPdfBase64 = ""; // base64 PDF ที่จะส่งให้ backend
+    let assets = [];               // รายการพัสดุทั้งหมดจาก backend
+    let editIndex = null;          // index ใน assets ที่กำลังแก้ไข (null = เพิ่มใหม่)
+    let currentImages = [];        // base64 รูปภาพที่จะส่งให้ backend
+
+    // ✅ PDF แบบหลายไฟล์
+    let currentPdfBase64s = [];    // base64 PDF หลายไฟล์
+    let currentPdfNames = [];      // ชื่อไฟล์ PDF หลายไฟล์
 
     // ====== ฟังก์ชันรีเซ็ตฟอร์ม ======
     function resetForm(forNew = false) {
@@ -264,8 +280,12 @@
       document.getElementById("imagePreview").innerHTML = "";
       document.getElementById("pdfFileName").textContent = "";
 
+      // ค่าเริ่มต้นโหมด PDF
+      document.getElementById("pdfReplace").checked = true;
+
       currentImages = [];
-      currentPdfBase64 = "";
+      currentPdfBase64s = [];
+      currentPdfNames = [];
     }
 
     // ====== โหลดข้อมูลทั้งหมดจาก Google Sheet ผ่าน API (ใช้ GET ธรรมดา) ======
@@ -336,11 +356,13 @@
         imgHtml = "<p class='text-muted'>ไม่มีรูปภาพ</p>";
       }
 
+      // ✅ PDF หลายไฟล์ (backend ส่ง pdfNames[], pdfUrls[])
       let pdfHtml = "";
-      if (item.pdfName && item.pdfUrl) {
-        pdfHtml = `<p>ไฟล์ PDF: <a href="${item.pdfUrl}" target="_blank" class="link-primary">${item.pdfName}</a></p>`;
-      } else if (item.pdfName) {
-        pdfHtml = `<p>มีไฟล์ PDF: <span class="badge bg-secondary">${item.pdfName}</span></p>`;
+      if (item.pdfUrls && item.pdfUrls.length > 0) {
+        pdfHtml = "<ul class='mb-0'>" + item.pdfUrls.map((u, i) => {
+          const n = (item.pdfNames && item.pdfNames[i]) ? item.pdfNames[i] : `ไฟล์ ${i + 1}`;
+          return `<li><a href="${u}" target="_blank" class="link-primary">${n}</a></li>`;
+        }).join("") + "</ul>";
       } else {
         pdfHtml = "<p class='text-muted'>ไม่มีไฟล์เอกสารแนบ</p>";
       }
@@ -373,7 +395,7 @@
         <hr>
         <h6>รูปภาพ</h6>
         <div class="mb-3">${imgHtml}</div>
-        <h6>เอกสารแนบ</h6>
+        <h6>เอกสารแนบ (PDF)</h6>
         ${pdfHtml}
       `;
     }
@@ -402,26 +424,34 @@
       });
     });
 
-    // ====== Event: เลือก PDF ======
+    // ====== Event: เลือก PDF (หลายไฟล์) ======
     document.getElementById("pdfUpload").addEventListener("change", function (e) {
-      const file = e.target.files[0];
+      const files = Array.from(e.target.files || []);
       const label = document.getElementById("pdfFileName");
-      currentPdfBase64 = "";
+
+      currentPdfBase64s = [];
+      currentPdfNames = [];
       label.textContent = "";
 
-      if (!file) return;
-      if (file.type !== "application/pdf") {
+      if (files.length === 0) return;
+
+      const notPdf = files.find(f => f.type !== "application/pdf");
+      if (notPdf) {
         Swal.fire("กรุณาเลือกไฟล์ PDF เท่านั้น", "", "warning");
         e.target.value = "";
         return;
       }
 
-      label.textContent = `ไฟล์: ${file.name}`;
-      const reader = new FileReader();
-      reader.onload = function (ev) {
-        currentPdfBase64 = ev.target.result; // data:application/pdf;base64,...
-      };
-      reader.readAsDataURL(file);
+      label.textContent = `เลือกไฟล์: ${files.map(f => f.name).join(", ")}`;
+
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          currentPdfBase64s.push(ev.target.result); // data:application/pdf;base64,...
+          currentPdfNames.push(file.name);
+        };
+        reader.readAsDataURL(file);
+      });
     });
 
     // ====== ปุ่มเพิ่มข้อมูลใหม่ ======
@@ -438,7 +468,7 @@
     document.getElementById("assetForm").addEventListener("submit", async function (e) {
       e.preventDefault();
 
-      const id = document.getElementById("assetId").value.trim(); // ถ้าเพิ่มใหม่ปล่อยว่าง
+      const id = document.getElementById("assetId").value.trim();
       const nameTh = document.getElementById("nameTh").value.trim();
       const nameEn = document.getElementById("nameEn").value.trim();
       const brand = document.getElementById("brand").value.trim();
@@ -459,7 +489,7 @@
       }
 
       const assetData = {
-        id, // ถ้าเป็นการเพิ่มใหม่/backend จะสร้าง ID เองถ้าว่าง
+        id,
         nameTh,
         nameEn,
         brand,
@@ -475,11 +505,11 @@
         receiveDate
       };
 
-      const pdfFile = document.getElementById("pdfUpload").files[0];
-      const pdfName = pdfFile ? pdfFile.name : (editIndex !== null ? (assets[editIndex].pdfName || "") : "");
-
       const isNew = (editIndex === null);
       const action = isNew ? 'saveAsset' : 'updateAsset';
+
+      // ✅ โหมด PDF
+      const pdfMode = document.querySelector('input[name="pdfMode"]:checked')?.value || 'replace';
 
       Swal.fire({
         title: isNew ? 'กำลังบันทึกข้อมูล...' : 'กำลังอัปเดตข้อมูล...',
@@ -491,18 +521,20 @@
         const payloadObj = {
           action,
           data: assetData,
-          images: currentImages,       // ถ้ามีรูปใหม่ → ส่ง base64, ถ้า [] → ให้ backend ใช้รูปเดิม
-          pdfBase64: currentPdfBase64, // ถ้ามี PDF ใหม่ → ส่ง, ถ้า "" → ให้ backend ใช้เดิม
-          pdfName: pdfName
+          images: currentImages,
+
+          // ✅ ส่ง PDF หลายไฟล์ให้ backend ใหม่
+          pdfBase64s: currentPdfBase64s,
+          pdfNames: currentPdfNames,
+          pdfMode: pdfMode
         };
 
-        // ใช้ URLSearchParams + payload แบบเดียวกับโปรเจกต์เช็คอิน
         const form = new URLSearchParams();
         form.append('payload', JSON.stringify(payloadObj));
 
         const res = await fetch(API_URL, {
           method: 'POST',
-          body: form       // ไม่มีการตั้ง Content-Type เอง → เป็น application/x-www-form-urlencoded (simple request)
+          body: form
         });
 
         const result = await res.json();
@@ -516,7 +548,6 @@
           timer: 1200
         });
 
-        // reload ข้อมูลจาก backend ให้ตรงกับ Sheet
         await loadAssets();
         resetForm(true);
 
@@ -557,9 +588,13 @@
       document.getElementById("purchaseUnit").value = item.purchaseUnit || "";
       document.getElementById("price").value = item.price || "";
       document.getElementById("otherParts").value = item.otherParts || "";
-      document.getElementById("receiveDate").value = item.receiveDate ? new Date(item.receiveDate).toISOString().slice(0, 10) : "";
 
-      // แสดง preview รูปจาก URL เดิม แต่ไม่ส่ง URL เป็น base64 กลับไป (ถ้าไม่อัปโหลดใหม่)
+      // วันที่ (รองรับกรณีเป็น string/date)
+      document.getElementById("receiveDate").value = item.receiveDate
+        ? new Date(item.receiveDate).toISOString().slice(0, 10)
+        : "";
+
+      // preview รูปเดิม (URL)
       const preview = document.getElementById("imagePreview");
       preview.innerHTML = "";
       if (item.images && item.images.length > 0) {
@@ -571,11 +606,21 @@
         });
       }
 
-      // รูป & PDF เดิมให้ backend จัดการ ถ้ายังไม่อัปโหลดใหม่
-      currentImages = [];           // ถ้า user ไม่อัปโหลดใหม่ → ส่ง [] ไปใน payload
-      currentPdfBase64 = "";
+      // ✅ PDF เดิมแสดงเป็น list (แต่ยังไม่ส่งกลับ ถ้าไม่เลือกใหม่)
       document.getElementById("pdfUpload").value = "";
-      document.getElementById("pdfFileName").textContent = item.pdfName ? `ไฟล์: ${item.pdfName}` : "";
+      if (item.pdfNames && item.pdfNames.length > 0) {
+        document.getElementById("pdfFileName").textContent = `ไฟล์เดิม: ${item.pdfNames.join(", ")}`;
+      } else {
+        document.getElementById("pdfFileName").textContent = "";
+      }
+
+      // reset ไฟล์ที่จะส่ง (ถ้า user ไม่เลือกใหม่ => ส่ง [] ไป backend)
+      currentImages = [];
+      currentPdfBase64s = [];
+      currentPdfNames = [];
+
+      // ค่าเริ่มต้นโหมด PDF ตอนแก้ไข: แนะนำให้เป็น append เพื่อไม่พลาดลบทับ
+      document.getElementById("pdfAppend").checked = true;
     }
 
     // ====== ลบข้อมูล ======
@@ -601,18 +646,11 @@
       });
 
       try {
-        const payloadObj = {
-          action: 'deleteAsset',
-          id: item.id
-        };
-
+        const payloadObj = { action: 'deleteAsset', id: item.id };
         const form = new URLSearchParams();
         form.append('payload', JSON.stringify(payloadObj));
 
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          body: form
-        });
+        const res = await fetch(API_URL, { method: 'POST', body: form });
         const json = await res.json();
         if (!json.success) throw new Error(json.error || 'ลบข้อมูลไม่สำเร็จ');
 
@@ -641,13 +679,12 @@
     // ====== ค้นหาในตาราง ======
     document.getElementById("searchInput").addEventListener("input", function () {
       const text = this.value.toLowerCase();
-      if (!text) {
-        showTable();
-        return;
-      }
+      if (!text) { showTable(); return; }
+
       const filtered = assets.filter(a =>
         (a.id || "").toLowerCase().includes(text) ||
         (a.nameTh || "").toLowerCase().includes(text) ||
+        (a.nameEn || "").toLowerCase().includes(text) ||   // ✅ ค้นหาชื่ออังกฤษด้วย
         (a.model || "").toLowerCase().includes(text)
       );
       showTable(filtered);
